@@ -16,6 +16,7 @@ public class ProdutoController {
 
     @Autowired
     public ProdutoController(ProdutoRepository produtoRepository) {
+
         this.produtoRepository = produtoRepository;
     }
 
