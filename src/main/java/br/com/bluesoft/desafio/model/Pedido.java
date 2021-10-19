@@ -17,7 +17,7 @@ public class Pedido {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idPedido;
-    @OneToMany
+    @OneToMany(cascade=CascadeType.PERSIST)
     private List<Fornecedor> fornecedor;
     @OneToMany
     private List <Produto> produtos;
