@@ -4,7 +4,7 @@ import br.com.bluesoft.desafio.model.Preco;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import javax.persistence.OneToMany;
-import java.util.List;
+import java.util.*;
 
 /**
  * @project desafio
@@ -15,7 +15,7 @@ public class FornecedorDTO {
     private String nome;
     private String cnpj;
     @JsonManagedReference
-    private List<PrecoDTO> precos;
+    private List<PrecoDTO> precos = new LinkedList<>();
 
     public String getNome() {
         return nome;
@@ -41,11 +41,24 @@ public class FornecedorDTO {
         this.precos = precos;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof FornecedorDTO)) return false;
+        FornecedorDTO that = (FornecedorDTO) o;
+        return nome.equals(that.nome) &&
+                cnpj.equals(that.cnpj);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(nome, cnpj);
+    }
 
     public static final class FornecedorDTOBuilder {
         private String nome;
         private String cnpj;
-        private List<PrecoDTO> precos;
+        private List<PrecoDTO> precos = new LinkedList<>();
 
         private FornecedorDTOBuilder() {
         }

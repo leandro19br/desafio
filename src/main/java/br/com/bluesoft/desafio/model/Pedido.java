@@ -19,8 +19,8 @@ public class Pedido {
     private Long idPedido;
     @OneToMany(cascade=CascadeType.PERSIST)
     private List<Fornecedor> fornecedor;
-    @OneToMany
-    private List <Produto> produtos;
+    @OneToMany(cascade=CascadeType.PERSIST)
+    private List<ItemPedido> produtos;
     private int quantidade;
     private BigDecimal preco;
     private BigDecimal total;
@@ -44,11 +44,11 @@ public class Pedido {
         this.fornecedor = fornecedor;
     }
 
-    public List<Produto> getProdutos() {
+    public List<ItemPedido> getProdutos() {
         return produtos;
     }
 
-    public void setProdutos(List<Produto> produtos) {
+    public void setProdutos(List<ItemPedido> produtos) {
         this.produtos = produtos;
     }
 
@@ -78,11 +78,9 @@ public class Pedido {
 
 
     public static final class PedidoBuilder {
-        @Id
-        @GeneratedValue(strategy = GenerationType.IDENTITY)
         private Long idPedido;
         private List<Fornecedor> fornecedor;
-        private List <Produto> produtos;
+        private List <ItemPedido> produtos;
         private int quantidade;
         private BigDecimal preco;
         private BigDecimal total;
@@ -104,7 +102,7 @@ public class Pedido {
             return this;
         }
 
-        public PedidoBuilder produtos(List<Produto> produtos) {
+        public PedidoBuilder produtos(List<ItemPedido> produtos) {
             this.produtos = produtos;
             return this;
         }

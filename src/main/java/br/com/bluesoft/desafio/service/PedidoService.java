@@ -3,6 +3,7 @@ package br.com.bluesoft.desafio.service;
 import br.com.bluesoft.desafio.client.ClientService;
 import br.com.bluesoft.desafio.exception.BadRequestExeception;
 import br.com.bluesoft.desafio.model.Fornecedor;
+import br.com.bluesoft.desafio.model.ItemPedido;
 import br.com.bluesoft.desafio.model.Pedido;
 import br.com.bluesoft.desafio.model.Produto;
 import br.com.bluesoft.desafio.repository.PedidoRepository;
@@ -38,24 +39,19 @@ public class PedidoService {
 
 
     public Pedido novo(List<ProdutoDTO> produtosDTO) {
-        Pedido pedido = new Pedido();
         List<ProdutoDTO> listaFiltrada = filtraProdutosSemQuantidade(produtosDTO);
-        pedido = buscaMelhorValorFornecedor(listaFiltrada);
-        return pedido;
+        return buscaMelhorValorFornecedor(listaFiltrada);
     }
 
     private List<ProdutoDTO> filtraProdutosSemQuantidade(List<ProdutoDTO> produtosDTO) {
         List<ProdutoDTO> listaFiltrada = new ArrayList<>();
-
-        for (ProdutoDTO produtoDTO : produtosDTO){
-            if (produtoDTO.getQuantidade() > 0){
+        for (ProdutoDTO produtoDTO : produtosDTO) {
+            if (produtoDTO.getQuantidade() > 0) {
                 listaFiltrada.add(produtoDTO);
             }
         }
-
         boolean empty = listaFiltrada.stream().findAny().isEmpty();
-
-        if (empty){
+        if (empty) {
             throw new BadRequestExeception("Produto com quantidade menor ou igual a zero");
         }
         return listaFiltrada;
@@ -63,76 +59,67 @@ public class PedidoService {
 
     private Pedido buscaMelhorValorFornecedor(List<ProdutoDTO> produtosDTO) {
 
-        List<FornecedorDTO> listaFornecedor = new ArrayList<>();
         List<PrecoDTO> listaPrecoFornecedores = new ArrayList<>();
-        Pedido pedido = new Pedido();
-
         for (ProdutoDTO produto : produtosDTO) {
-            listaFornecedor = getFornecedorDTOS(produto);
-            //fazendo um for em cada fornededor para o produto e pegando a lista de preço
-            extrairListaPrecosOrdenada(listaFornecedor, listaPrecoFornecedores);
-            pedido = getPedido(listaPrecoFornecedores, produto);
+            List<FornecedorDTO> listaFornecedor = buscaFornecedorDoProduto(produto);
+            extraiListaPrecosOrdenada(listaFornecedor, produto.getQuantidade());
+            return geraPedido(produto, listaFornecedor);
         }
-        return pedido;
+        return null;
     }
 
-    private Pedido getPedido(List<PrecoDTO> listaPrecoFornecedores, ProdutoDTO produto) {
-
+    private Pedido geraPedido(ProdutoDTO produto, List<FornecedorDTO> listaFornecedores) {
         Pedido pedido = new Pedido();
-
-        for (int i = 0; i < listaPrecoFornecedores.size(); i++) {
-            if (produto.getQuantidade() >= listaPrecoFornecedores.get(i).getQuantidadeMinima()) {
-                System.out.println(" Fornecedor " + listaPrecoFornecedores.get(i).getFornecedorDTO().getNome() + " do produto " + produto.getNome() + ", a quantidade mínima de pedido é " + listaPrecoFornecedores.get(i).getQuantidadeMinima() + " e o menor Valor é " + listaPrecoFornecedores.get(i).getPreco());
-                Fornecedor fornecedor = getFornecedor(listaPrecoFornecedores, i);
-                Produto produtoMontado = getProduto(produto);
-                pedido = Pedido.PedidoBuilder.newPedido()
-                        .fornecedor(Arrays.asList(fornecedor))
-                        .produtos(Arrays.asList(produtoMontado))
-                        .quantidade(produto.getQuantidade())
-                        .preco(listaPrecoFornecedores.get(i).getPreco())
-                        .total(listaPrecoFornecedores.get(i).getPreco().multiply(new BigDecimal(produto.getQuantidade())))
-                        .build();
-                pedidoRepository.save(pedido);
-                break;
-            }
+        for (FornecedorDTO forn : listaFornecedores) {
+            List<PrecoDTO> listaPrecoFornecedores = forn.getPrecos();
+            System.out.println(" Fornecedor " + forn.getNome() + " do produto " + produto.getNome() + ", a quantidade mínima de pedido é " + listaPrecoFornecedores.get(0).getQuantidadeMinima() + " e o menor Valor é " + listaPrecoFornecedores.get(0).getPreco());
+            Fornecedor fornecedor = criaFornecedor(forn);
+            ItemPedido itemPedido = criaProduto(produto);
+            pedido = Pedido.PedidoBuilder.newPedido()
+                    .fornecedor(Arrays.asList(fornecedor))
+                    .produtos(Arrays.asList(itemPedido))
+                    .quantidade(produto.getQuantidade())
+                    .preco(listaPrecoFornecedores.get(0).getPreco())
+                    .total(listaPrecoFornecedores.get(0).getPreco().multiply(new BigDecimal(produto.getQuantidade())))
+                    .build();
+            pedidoRepository.save(pedido);
         }
         return pedido;
     }
 
-    private List<FornecedorDTO> getFornecedorDTOS(ProdutoDTO produto) {
-        List<FornecedorDTO> listaFornecedor;
-        //buscar o fornecedor de cada produto
-        listaFornecedor = clientService.buscaListaFornecedor(produto.getGtin());
-        return listaFornecedor;
+    private List<FornecedorDTO> buscaFornecedorDoProduto(ProdutoDTO produto) {
+        return clientService.buscaListaFornecedor(produto.getGtin());
     }
 
-    private void extrairListaPrecosOrdenada(List<FornecedorDTO> listaFornecedor, List<PrecoDTO> listaPrecoFornecedores) {
+    private void extraiListaPrecosOrdenada(List<FornecedorDTO> listaFornecedor, int quantidade) {
+
         for (FornecedorDTO f : listaFornecedor) {
             List<PrecoDTO> precos = f.getPrecos();
-            listaPrecoFornecedores.addAll(precos);
+            for (Iterator<PrecoDTO> iterator = precos.iterator(); iterator.hasNext(); ) {
+                PrecoDTO next = iterator.next();
+                if (next.getQuantidadeMinima() > quantidade) {
+                    iterator.remove();
+                }
+            }
+            ordenaListaPreco(precos);
         }
-        OrdenaListaPreco(listaPrecoFornecedores);
     }
 
-    private Produto getProduto(ProdutoDTO produto) {
-        return Produto.ProdutoBuilder.newProduto()
+    private ItemPedido criaProduto(ProdutoDTO produto) {
+        return ItemPedido.ItemPedidoBuilder.newItemPedido()
                 .gtin(produto.getGtin())
                 .nome(produto.getNome())
                 .build();
     }
 
-    private Fornecedor getFornecedor(List<PrecoDTO> listaPrecoFornecedores, int i) {
+    private Fornecedor criaFornecedor(FornecedorDTO fornecedorDTO) {
         return Fornecedor.FornecedorBuilder.newFornecedor()
-                .cnpj(listaPrecoFornecedores.get(i).getFornecedorDTO().getCnpj())
-                .nome(listaPrecoFornecedores.get(i).getFornecedorDTO().getNome())
+                .cnpj(fornecedorDTO.getCnpj())
+                .nome(fornecedorDTO.getNome())
                 .build();
     }
 
-    private void OrdenaListaPreco(List<PrecoDTO> listaPrecoFornecedores) {
-        listaPrecoFornecedores.sort(new Comparator<PrecoDTO>() {
-            public int compare(PrecoDTO o1, PrecoDTO o2) {
-                return o1.getPreco().compareTo(o2.getPreco());
-            }
-        });
+    private void ordenaListaPreco(List<PrecoDTO> listaPrecoFornecedores) {
+        listaPrecoFornecedores.sort(Comparator.comparing(PrecoDTO::getPreco));
     }
 }
