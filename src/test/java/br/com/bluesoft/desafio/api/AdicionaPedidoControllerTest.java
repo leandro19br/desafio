@@ -1,7 +1,6 @@
 package br.com.bluesoft.desafio.api;
 
 import br.com.bluesoft.desafio.model.Pedido;
-import br.com.bluesoft.desafio.requests.ProdutoDTO;
 import br.com.bluesoft.desafio.service.PedidoService;
 import br.com.bluesoft.desafio.util.CriadorPedido;
 import br.com.bluesoft.desafio.util.CriadorProdutoDTO;
@@ -10,15 +9,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.ArgumentMatchers;
+import org.mockito.BDDMockito;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.math.BigDecimal;
 import java.util.Arrays;
-import java.util.List;
 
 /**
  * @project desafio

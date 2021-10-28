@@ -11,8 +11,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/*pedidos/novo*/
-
 @RestController
 @RequestMapping("/api/pedidos")
 public class AdicionaPedidoController {
@@ -30,7 +28,6 @@ public class AdicionaPedidoController {
     }
 
     @PostMapping(path = "/novo")
-    @Transactional(rollbackFor = Exception.class)
     public ResponseEntity<Pedido> novo(@RequestBody List<ProdutoDTO> produtosDTO) {
         return new ResponseEntity<Pedido>(service.novo(produtosDTO), HttpStatus.CREATED);
     }

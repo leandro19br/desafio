@@ -3,6 +3,8 @@ package br.com.bluesoft.desafio.exception;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+import java.util.function.Supplier;
+
 /**
  * sempre vai retornar status 404 bad request
  */
@@ -13,4 +15,6 @@ public class BadRequestExeception extends RuntimeException {
     public BadRequestExeception(String message) {
         super(message);
     }
+
+
 }

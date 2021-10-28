@@ -7,6 +7,7 @@ import br.com.bluesoft.desafio.model.ItemPedido;
 import br.com.bluesoft.desafio.model.Pedido;
 import br.com.bluesoft.desafio.model.Produto;
 import br.com.bluesoft.desafio.repository.PedidoRepository;
+import br.com.bluesoft.desafio.repository.ProdutoRepository;
 import br.com.bluesoft.desafio.requests.FornecedorDTO;
 import br.com.bluesoft.desafio.requests.PrecoDTO;
 import br.com.bluesoft.desafio.requests.ProdutoDTO;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.function.Supplier;
 
 /**
  * @project desafio
@@ -26,11 +28,13 @@ public class PedidoService {
 
     private ClientService clientService;
     private PedidoRepository pedidoRepository;
+    private ProdutoRepository produtoRepository;
 
     @Autowired
-    public PedidoService(ClientService clientService, PedidoRepository pedidoRepository) {
+    public PedidoService(ClientService clientService, PedidoRepository pedidoRepository, ProdutoRepository produtoRepository) {
         this.clientService = clientService;
         this.pedidoRepository = pedidoRepository;
+        this.produtoRepository = produtoRepository;
     }
 
     public Iterable<Pedido> liatAll() {
@@ -39,33 +43,35 @@ public class PedidoService {
 
 
     public Pedido novo(List<ProdutoDTO> produtosDTO) {
-        List<ProdutoDTO> listaFiltrada = filtraProdutosSemQuantidade(produtosDTO);
-        return buscaMelhorValorFornecedor(listaFiltrada);
+        //List<ProdutoDTO> listaFiltrada = filtraProdutosSemQuantidade(produtosDTO);
+        filtraProdutosSemQuantidade(produtosDTO);
+        //Optional<Pedido> pedido = buscaMelhorValorFornecedor(produtosDTO);
+        //pedido.orElseThrow(new BadRequestExeception("teste"));
+        return buscaMelhorValorFornecedor(produtosDTO).orElseThrow(() -> new BadRequestExeception("Pesiso está null"));
     }
 
-    private List<ProdutoDTO> filtraProdutosSemQuantidade(List<ProdutoDTO> produtosDTO) {
-        List<ProdutoDTO> listaFiltrada = new ArrayList<>();
-        for (ProdutoDTO produtoDTO : produtosDTO) {
-            if (produtoDTO.getQuantidade() > 0) {
-                listaFiltrada.add(produtoDTO);
-            }
-        }
-        boolean empty = listaFiltrada.stream().findAny().isEmpty();
+    private void filtraProdutosSemQuantidade(List<ProdutoDTO> produtosDTO) {
+        produtosDTO.removeIf(produtoDTO -> produtoDTO.getQuantidade() == 0);
+        boolean empty = produtosDTO.stream().findAny().isEmpty();
         if (empty) {
             throw new BadRequestExeception("Produto com quantidade menor ou igual a zero");
         }
-        return listaFiltrada;
+
     }
 
-    private Pedido buscaMelhorValorFornecedor(List<ProdutoDTO> produtosDTO) {
-
-        List<PrecoDTO> listaPrecoFornecedores = new ArrayList<>();
-        for (ProdutoDTO produto : produtosDTO) {
-            List<FornecedorDTO> listaFornecedor = buscaFornecedorDoProduto(produto);
-            extraiListaPrecosOrdenada(listaFornecedor, produto.getQuantidade());
-            return geraPedido(produto, listaFornecedor);
+    private Optional<Pedido> buscaMelhorValorFornecedor(List<ProdutoDTO> produtosDTO) {
+        //List<PrecoDTO> listaPrecoFornecedores = new ArrayList<>();
+        Produto produto = new Produto();
+        for (ProdutoDTO produtoDTO : produtosDTO) {
+            List<FornecedorDTO> listaFornecedor = buscaFornecedorDoProduto(produtoDTO);
+            extraiListaPrecosOrdenada(listaFornecedor, produtoDTO.getQuantidade());
+            if (produtoDTO.getNome() == null) {
+                produto = produtoRepository.findBygtin(produtoDTO.getGtin());
+                produtoDTO.setNome(produto.getNome());
+            }
+            return Optional.of(geraPedido(produtoDTO, listaFornecedor));
         }
-        return null;
+        return Optional.empty();
     }
 
     private Pedido geraPedido(ProdutoDTO produto, List<FornecedorDTO> listaFornecedores) {
